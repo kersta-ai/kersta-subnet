@@ -1,0 +1,31 @@
+# The image every miner model runs in. Validators pull it by digest.
+#
+#   docker build -f docker/Dockerfile.sandbox -t ghcr.io/kersta-ai/sandbox:1 .
+#
+# It holds the model libraries the import policy allows and Kersta's own
+# worker, nothing else. Pin the base by digest before testnet launch
+# (docker buildx imagetools inspect <image>) so every validator runs
+# identical kernels.
+FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1 \
+    HOME=/tmp
+
+COPY docker/sandbox-requirements.txt /tmp/sandbox-requirements.txt
+RUN pip install --no-cache-dir -r /tmp/sandbox-requirements.txt && rm /tmp/sandbox-requirements.txt
+
+# Kersta itself (the worker, the protocol and the policy), without extras.
+COPY pyproject.toml README.md /opt/kersta/
+COPY kersta /opt/kersta/kersta
+RUN pip install --no-cache-dir --no-deps /opt/kersta && rm -rf /opt/kersta
+
+RUN useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin model
+USER 10001:10001
+WORKDIR /tmp
+
+# No ENTRYPOINT: the validator passes the full worker command line
+# (kersta/sandbox/runner.py DockerLauncher), so nothing gets doubled up.
+CMD ["python", "-m", "kersta.sandbox.worker", "--help"]

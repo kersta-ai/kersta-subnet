@@ -1,0 +1,25 @@
+# The validator process. It runs no miner code itself: it decodes media,
+# starts one sandbox container per model through the host's Docker, times
+# every answer from outside, scores and sets weights.
+#
+#   docker build -f docker/Dockerfile.validator -t ghcr.io/kersta-ai/validator:1 .
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+
+# ffmpeg decodes test video; the docker CLI starts sandbox containers.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ffmpeg ca-certificates curl gnupg \
+ && install -m 0755 -d /etc/apt/keyrings \
+ && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
+ && echo "deb [signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable" \
+    > /etc/apt/sources.list.d/docker.list \
+ && apt-get update && apt-get install -y --no-install-recommends docker-ce-cli \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml README.md /opt/kersta/
+COPY kersta /opt/kersta/kersta
+RUN pip install --no-cache-dir "/opt/kersta[chain]"
+
+ENTRYPOINT ["kersta"]
+CMD ["validator", "run"]

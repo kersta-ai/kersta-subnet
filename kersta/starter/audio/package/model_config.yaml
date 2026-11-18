@@ -1,0 +1,11 @@
+name: kersta-starter-audio
+version: "0.1.0"
+lane: audio
+dtype: float32
+preprocessing:
+  sample_rate: 16000
+  seconds: 10.0
+  crop: start
+starter:
+  n_mels: 64
+  width: 32

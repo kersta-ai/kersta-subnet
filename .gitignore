@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+build/
+dist/
+
+.env
+*.safetensors
+!tests/**/*.safetensors
+
+# local competitions, caches and validator state
+/submission/
+/state/
+/work/
+/competition-*/
+*.notes.json
+kersta_sandbox_probe.npy

@@ -1,0 +1,13 @@
+name: kersta-starter-video
+version: "0.1.0"
+lane: video
+dtype: float16
+preprocessing:
+  fps: 4
+  max_frames: 40      # 10 s at 4 fps
+  size: [192, 192]
+  fit: center_crop
+  layout: nchw        # inputs: uint8 [B, F, 3, H, W]
+  scale: uint8
+starter:
+  width: 24

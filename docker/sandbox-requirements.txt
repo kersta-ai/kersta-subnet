@@ -1,0 +1,10 @@
+# Libraries a miner model may import (kersta/sandbox/policy.py ALLOWED_MODULES).
+# torch, torchvision and torchaudio come from the base image.
+numpy==1.26.4
+scipy==1.13.1
+pillow==10.4.0
+pyyaml==6.0.2
+safetensors==0.4.5
+timm==1.0.11
+einops==0.8.0
+transformers==4.46.3

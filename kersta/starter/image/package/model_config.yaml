@@ -1,0 +1,12 @@
+name: kersta-starter-image
+version: "0.1.0"
+lane: image
+dtype: float16
+preprocessing:
+  size: [256, 256]
+  fit: center_crop
+  interpolation: bilinear
+  layout: nchw
+  scale: uint8        # raw 0..255 pixels; the model normalises on the GPU
+starter:
+  width: 32

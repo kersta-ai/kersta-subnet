@@ -1,0 +1,29 @@
+# Kersta validator.
+#
+#   cp .env.example .env    # then fill in the wallet and test set settings
+#   docker compose -f docker/docker-compose.validator.yml up -d
+#   docker compose -f docker/docker-compose.validator.yml logs -f
+#
+# KERSTA_HOME must be the SAME path on the host and in the container: the
+# validator asks the host's Docker to mount package folders into sandbox
+# containers, and the host resolves those paths, not this container.
+services:
+  validator:
+    image: ghcr.io/kersta-ai/validator:1
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      KERSTA_HOME: /var/lib/kersta
+      KERSTA_SANDBOX: docker
+    command: >
+      validator run
+      --wallet.name ${KERSTA_WALLET_NAME:-default}
+      --wallet.hotkey ${KERSTA_WALLET_HOTKEY:-default}
+      --wallet.path /wallets
+    volumes:
+      - /var/lib/kersta:/var/lib/kersta
+      - ${KERSTA_WALLET_PATH:-~/.bittensor/wallets}:/wallets:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    logging:
+      driver: json-file
+      options: {max-size: "50m", max-file: "5"}

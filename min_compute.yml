@@ -1,0 +1,31 @@
+version: "0.1.0"
+netuid: 456
+network: test
+
+miner:
+  rationale: >
+    Miners host nothing. They train detectors on their own (or rented) GPUs,
+    publish a package on Hugging Face and commit its hash on chain. The only
+    hardware requirement is what training needs.
+  training:
+    gpu: "one 24 GB NVIDIA GPU (RTX 4090 / A5000 / L4 or better)"
+    cpu_cores: 8
+    ram_gb: 32
+    disk_gb: 500
+  local_scoring:
+    note: "kersta miner score runs your model on a released test set; same GPU class as training"
+
+validator:
+  gpu:
+    vram_gb: 48
+    examples: ["RTX 6000 Ada", "L40S", "A6000", "A100 80GB"]
+    note: >
+      Speed limits are set on the reference GPU and published with each
+      release; a validator GPU slower than the reference would fail fast
+      models unfairly, so do not validate on anything slower.
+  cpu_cores: 16
+  ram_gb: 64
+  disk_gb: 1000
+  disk_type: NVMe
+  software: ["Ubuntu 22.04 or 24.04", "Docker 27+", "NVIDIA Container Toolkit", "ffmpeg (in the image)"]
+  uptime: "running from a competition's reveal block until weights are set at its end block, and continuously for the weights keeper"
