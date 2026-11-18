@@ -155,72 +155,43 @@ Validators do the expensive computation themselves. There is no trusted scoring 
 
 ## 6. Scoring
 
-All scoring runs on the validators' own outputs with the same code on every validator (`kersta/scoring`). An item is called fake when $p_i \ge 0.5$.
+Every validator scores with the same code (`kersta/scoring`), using only the outputs it recorded itself. A detector calls an item fake when its `p_fake` is 0.5 or higher.
 
-**Slice score.** The test set is split into three slices:
+**Slices.** The test set is divided three ways:
 
-- *clean*: undamaged items;
-- *damaged*: damaged items;
-- *unseen*: fakes from new generators, plus an equal number of real items.
+- *clean*: items with no damage;
+- *damaged*: items that went through a damage chain;
+- *unseen*: fakes from generators no earlier competition used, with the same number of real items.
 
-For each slice,
+**Slice score.** Two things are measured on each slice:
 
-$$
-s = \sqrt{\frac{\mathrm{MCC} + 1}{2} \cdot \max\!\left(0,\; 1 - \frac{\mathrm{Brier}}{0.25}\right)}, \qquad \mathrm{Brier} = \frac{1}{n}\sum_{i=1}^{n} (p_i - y_i)^2
-$$
+- *Correctness*: the Matthews correlation coefficient of the fake or real calls, rescaled from the range −1 to 1 onto 0 to 1. It is taken as 0 when undefined.
+- *Calibration*: 1 minus the Brier score (the mean squared gap between `p_fake` and the true label) divided by 0.25, never below 0. A detector that always answers 0.5 has a calibration of 0.
 
-with MCC taken as 0 when it is undefined.
+The slice score is the square root of correctness times calibration, so a detector must be both right and honest about its confidence.
 
-**Detection.**
+**Detection score (D).** The damaged slice counts for half, the clean and unseen slices for a quarter each.
 
-$$
-D = 0.25\, s_{\mathrm{clean}} + 0.50\, s_{\mathrm{damaged}} + 0.25\, s_{\mathrm{unseen}}
-$$
+**Location score (L).** Only partial edits count. For each one, the region the detector marks as fake is compared with the true region: the overlap divided by the area the two cover together. Regions are pixels for images, on the model's own input grid, and seconds for audio and video. A partial edit with no location answer scores 0, and L is the average over all partial edits.
 
-**Location.** Over the set $P$ of partial edits,
-
-$$
-L = \frac{1}{|P|}\sum_{i \in P} \frac{|\hat{M}_i \cap M_i|}{|\hat{M}_i \cup M_i|}
-$$
-
-where $M_i$ is the true region: pixels for images, measured on the model's own input grid, and seconds for audio and video. An item with no location answer contributes 0.
-
-**Lane score.**
-
-$$
-S = 0.85\, D + 0.15\, L
-$$
-
-followed by four checks:
+**Lane score (S).** Detection counts for 85% and location for 15%. Four checks then apply:
 
 | Check | Effect |
 |---|---|
-| More than 1% of items failed (crash, timeout, malformed output); below that a failed item counts as $p = 0.5$ | $S = 0$ |
-| 95th percentile time per item above the lane limit | $S = 0$ |
-| Share of real items with $p \ge 0.5$ above 2% | $S$ halved |
-| Copy of an earlier model, as below | $S = 0$ |
+| More than 1% of items failed (crash, timeout, malformed output); below that, a failed item is scored as if `p_fake` were 0.5 | lane score set to 0 |
+| 95th percentile time per item above the lane limit | lane score set to 0 |
+| More than 2% of real items called fake | lane score halved |
+| Copy of an earlier model, as below | lane score set to 0 |
 
-**Copy check.** A later model $j$ is a copy of an earlier model $i$ in the same lane when
-
-$$
-\rho\!\left(p^{(j)}, p^{(i)}\right) > 0.98 \quad\text{and}\quad S_j < S_i + 0.01
-$$
-
-where $\rho$ is the Pearson correlation of `p_fake` over the whole test set. An identical lane digest counts as $\rho = 1$.
+**Copy check.** A model counts as a copy of one committed earlier in the same lane when their `p_fake` values over the whole test set have a Pearson correlation above 0.98 and it does not beat that model's lane score by at least 0.01. Two lane folders with the same digest are always copies.
 
 Every report carries each model's accuracy by damage operation and by generator, so a miner can see exactly which conditions it fails under.
 
 ## 7. Incentives
 
-Miner emissions are split equally across the three lanes. Within a lane the top 20 eligible detectors are paid, and rank $r$ earns 0.8 times the rank above:
+Each lane receives one third of miner emissions, and the 20 best eligible detectors in a lane are paid. First place gets the largest share, each later place gets 0.8 times the place above it, and the shares are scaled to fill the lane. With twenty paid, first place receives about 20.2% of the lane, fifth about 8.3% and tenth about 2.7%.
 
-$$
-w_r = \frac{0.8^{\,r-1}}{\sum_{k=1}^{\min(n,\,20)} 0.8^{\,k-1}}
-$$
-
-With twenty paid, that is about 20.2% for the first, 8.3% for the fifth and 2.7% for the tenth.
-
-Each hotkey's share of a lane is $0.7\, w^{(t)} + 0.3\, w^{(t-1)}$: this competition's rank weight blended with the previous competition's. One strong result therefore cannot take a lane, and one weak one does not erase a record.
+A hotkey's share of a lane blends 70% of its share from this competition with 30% of its share from the previous one. One strong result therefore cannot take a lane, and one weak one does not erase a record.
 
 Whatever nobody earned is burned to the owner hotkey rather than paid to weak work:
 - a lane with no eligible detector;
